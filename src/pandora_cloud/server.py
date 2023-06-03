@@ -199,7 +199,6 @@ class ChatBot:
                 if access_token is None:
                     raise Exception('cannot find your account')
 
-                print('get_token_by_name: ' + access_token)
                 payload = check_access_token(access_token)
                 if True == payload:
                     ti = await self.__fetch_share_tokeninfo(access_token)

@@ -198,7 +198,13 @@
 
     main header > h1 + div {
         display: none !important
-    }</style>
+    }
+
+    #submit-login-name {
+        background-color: #10a37f;
+        color: #ffffff;
+    }
+    </style>
 </head>
 <body class="_widget-auto-layout">
 <div class="oai-wrapper">
@@ -214,25 +220,12 @@
                     </header>
                     <div class="cd073cc55 c3057e255">
                         <form method="post" data-provider="windowslive" class="cada38124 c856cfac0 c45d84291"
-                                  data-form-primary="true">
-                            <div class="c51fadc8b c7cc0d651 text c183d9a0a{{ ' c3ab3f08e c666327b8' if error else '' }}"
-                                 data-action-text="" data-alternate-action-text="">
-                                <input type="hidden" id="txtNext" name="next" value="{{ next }}"/>
-                                <label class="c41b9071b no-js c6e062879 cd80352de" for="login_name">LoginName</label>
-                                <input class="input cdb43277e c07239cfd{{ ' cca61e7fa c224a8982 c08661137' if error else '' }}"
-                                       inputMode="login_name" name="login_name" type="text" id="txtLoginName"
-                                       value="" required autoComplete="login_name"
-                                       autoCapitalize="none" spellCheck="false" autoFocus/>
-                                <div class="c41b9071b js-required c6e062879 cd80352de"
-                                     data-dynamic-label-for="login_name" aria-hidden="true">LoginName
-                                </div>
-                            </div>
-                            <div class="cc336b8c1">
-                                <button type="submit" name="action" value="default" id="submit-login-name"
-                                        class="c994ae14c c2fd8f218 ca2dc35c7 c0c7f649b"
-                                        data-action-button-primary="true">Continue
-                                </button>
-                            </div>
+                                  data-form-secondary="true">
+                            <input type="hidden" id="txtNext" name="next" value="{{ next }}"/>
+                            <button type="button" id="submit-login-name" class="cb920eae9 c4a315d94 c5c10a20c"
+                                    data-action-button-secondary="true">
+                                <span class="c47d81fe7">Continue with Login Name</span>
+                            </button>
                         </form>
                         <div class="c11767592 c16884ee3"><span>Or</span></div>
                         <div class="c497a10c6 c87650a4b">
@@ -562,7 +555,8 @@ window.addEventListener('load', function () {
 
     const submitLoginNameBtn = document.querySelector('#submit-login-name');
     submitLoginNameBtn.addEventListener('click', function () {
-        const login_name = document.getElementById('txtLoginName').value;
+        {#const login_name = document.getElementById('txtLoginName').value;#}
+        const login_name = prompt('Please input login name')
         if (login_name) {
             fetch('login_name', {
                 method: 'POST',
