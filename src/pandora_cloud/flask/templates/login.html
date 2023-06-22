@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="robots" content="noindex, nofollow"/>
     <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="{{ api_prefix|safe }}"/>
     <link rel="stylesheet" href="/ulp/react-components/1.66.5/css/main.cdn.min.css"/>
+    <link rel="stylesheet" href="/sweetalert2/bulma.min.css"/>
     <style id="custom-styles-container">body {
         background: #ffffff;
         font-family: ulp-font, -apple-system, BlinkMacSystemFont, Roboto, Helvetica, sans-serif
@@ -198,8 +200,8 @@
 
     main header > h1 + div {
         display: none !important
-    }
-    </style>
+    }</style>
+    <script>window.__api_prefix = '{{api_prefix|safe}}';</script>
 </head>
 <body class="_widget-auto-layout">
 <div class="oai-wrapper">
@@ -532,6 +534,7 @@
     <footer class="oai-footer"><a href="https://github.com/pengzhile/pandora" target="_blank">Pandora on GitHub</a>
     </footer>
 </div>
+<script src="/sweetalert2/sweetalert2.all.min-bc15590d.js" defer=""></script>
 <script type="text/javascript">function updateHeader(text) {
     const $h1 = document.querySelector('main header > h1');
     if ($h1) {
@@ -543,27 +546,33 @@ updateHeader('Pandora-GPT');
 window.addEventListener('load', function () {
     const submitBtn = document.querySelector('#submit-token');
     submitBtn.addEventListener('click', function () {
-        const accessToken = prompt('Please input access token:');
-        if (accessToken) {
+        Swal.fire({
+            input: 'textarea',
+            inputLabel: 'Continue with Access Token',
+            inputPlaceholder: 'Please input access token...',
+            inputAttributes: {'aria-label': 'Please input access token'},
+            showCancelButton: true
+        }).then((result) => {
+            if (!result.isConfirmed || !result.value) {
+                return
+            }
             fetch('login_token', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=token&access_token=' + encodeURIComponent(accessToken) + '&next=' + encodeURIComponent(document.getElementById('txtNext').value)
+                body: 'action=token&access_token=' + encodeURIComponent(result.value) + '&next=' + encodeURIComponent(document.getElementById('txtNext').value)
             }).then(response => response.json()).then(data => {
                 if (0 === data.code) {
                     window.location.href = data.url
                 } else {
-                    alert(data.message)
+                    Swal.fire('Error', data.message, 'error')
                 }
             }).catch(error => console.error(error))
-        }
+        });
     });
 
     const submitLoginNameBtn = document.querySelector('#submit-login-name');
     submitLoginNameBtn.addEventListener('click', function () {
         const login_name = document.getElementById('txtLoginName').value;
-        console.log(login_name)
-        {#const login_name = prompt('Please input login name')#}
         if (login_name) {
             fetch('login_name', {
                 method: 'POST',

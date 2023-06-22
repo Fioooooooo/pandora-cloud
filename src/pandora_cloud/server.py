@@ -33,7 +33,7 @@ class ChatBot:
         hook_logging(level=self.log_level, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
         self.logger = logging.getLogger('waitress')
 
-    def run(self, bind_str, threads=8):
+    def run(self, bind_str, threads=8, listen=True):
         host, port = self.__parse_bind(bind_str)
 
         resource_path = abspath(join(dirname(__file__), 'flask'))
@@ -46,6 +46,7 @@ class ChatBot:
         app.route('/api/auth/session')(self.session)
         app.route('/api/accounts/check/v4-2023-04-27')(self.check)
         app.route('/auth/logout')(self.logout)
+        app.route('/error/404')(self.error404)
         app.route('/_next/data/{}/index.json'.format(self.__build_id))(self.chat_info)
         app.route('/_next/data/{}/c/<conversation_id>.json'.format(self.__build_id))(self.chat_info)
         app.route('/_next/data/{}/share/<share_id>.json'.format(self.__build_id))(self.share_info)
@@ -62,6 +63,7 @@ class ChatBot:
         app.route('/chat/<conversation_id>')(self.chat_index)
 
         app.route('/auth/login')(self.login)
+        app.route('/auth/login_share')(self.login_share_token)
         app.route('/auth/login', methods=['POST'])(self.login_post)
         app.route('/auth/login_token', methods=['POST'])(self.login_token)
         app.route('/auth/login_name', methods=['POST'])(self.login_name)
@@ -70,7 +72,10 @@ class ChatBot:
             self.logger.warning('Serving on http://{}:{}'.format(host, port))
 
         WSGIRequestHandler.protocol_version = 'HTTP/1.1'
-        serve(app, host=host, port=port, ident=None, threads=threads)
+        if listen:
+            serve(app, host=host, port=port, ident=None, threads=threads)
+
+        return app
 
     @staticmethod
     def __after_request(resp):
@@ -115,6 +120,9 @@ class ChatBot:
 
         async with httpx.AsyncClient(proxies=self.proxy, timeout=30) as client:
             response = await client.get(url)
+            if response.status_code == 404:
+                raise Exception('share token not found or expired')
+
             if response.status_code != 200:
                 raise Exception('failed to fetch share token info')
 
@@ -166,6 +174,25 @@ class ChatBot:
                 error = str(e)
 
         return render_template('login.html', username=username, error=error, api_prefix=self.api_prefix)
+
+    async def login_share_token(self):
+        share_token = request.args.get('token')
+        error = None
+
+        if share_token and share_token.startswith('fk-'):
+            try:
+                ti = await self.__fetch_share_tokeninfo(share_token)
+                payload = {'exp': ti['expire_at']}
+
+                resp = make_response('please wait...', 307)
+                resp.headers.set('Location', '/')
+                self.__set_cookie(resp, share_token, payload['exp'])
+
+                return resp
+            except Exception as e:
+                error = str(e)
+
+        return render_template('login.html', error=error, api_prefix=self.api_prefix)
 
     async def login_token(self):
         access_token = request.form.get('access_token')
@@ -275,6 +302,21 @@ class ChatBot:
         }
 
         return jsonify(ret)
+
+    async def error404(self):
+        props = {
+            'props': {
+                'pageProps': {'statusCode': 404}
+            },
+            'page': '/_error',
+            'query': {},
+            'buildId': self.__build_id,
+            'nextExport': True,
+            'isFallback': False,
+            'gip': True,
+            'scriptLoader': []
+        }
+        return render_template('404.html', pandora_sentry=self.sentry, api_prefix=self.api_prefix, props=props)
 
     async def share_detail(self, share_id):
         err, user_id, email, _, _ = await self.__get_userinfo()
